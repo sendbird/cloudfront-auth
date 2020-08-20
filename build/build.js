@@ -201,6 +201,11 @@ function googleConfiguration() {
         required: true,
         default: R.pathOr('', ['AUTH_REQUEST', 'hd'], oldConfig)
       },
+      TD: {
+        message: colors.red("Trusted Domain"),
+        required: false,
+        default: R.pathOr('', ['AUTH_REQUEST', 'td'], oldConfig)
+      },
       SESSION_DURATION: {
         pattern: /^[0-9]*$/,
         description: colors.red("Session Duration (hours)"),
@@ -209,8 +214,8 @@ function googleConfiguration() {
         default: R.pathOr('', ['SESSION_DURATION'], oldConfig)/60/60
       },
       AUTHZ: {
-        description: colors.red("Authorization methods:\n   (1) Hosted Domain - verify email's domain matches that of the given hosted domain\n   (2) HTTP Email Lookup - verify email exists in JSON array located at given HTTP endpoint\n   (3) Google Groups Lookup - verify email exists in one of given Google Groups\n\n   Select an authorization method")
-      }
+        description: colors.red("Authorization methods:\n   (1) Hosted Domain - verify email's domain matches that of the given hosted domain\n   (2) HTTP Email Lookup - verify email exists in JSON array located at given HTTP endpoint\n   (3) Google Groups Lookup - verify email exists in one of given Google Groups\n   (4) Trusted Domain - verify email's domain mathces that of the given trusted domain\n\n   Select an authorization method")
+      },
     }
   }, function(err, result) {
     config.PRIVATE_KEY = fs.readFileSync('distributions/' + config.DISTRIBUTION + '/id_rsa', 'utf8');
@@ -220,6 +225,7 @@ function googleConfiguration() {
 
     config.CALLBACK_PATH = url.parse(result.REDIRECT_URI).pathname;
     config.HOSTED_DOMAIN = result.HD;
+    config.TRUSTED_DOMAIN = result.TD;
 
     config.AUTH_REQUEST.client_id = result.CLIENT_ID;
     config.AUTH_REQUEST.response_type = 'code';
@@ -242,6 +248,11 @@ function googleConfiguration() {
     switch (result.AUTHZ) {
       case '1':
         shell.cp('./authz/google.hosted-domain.js', './distributions/' + config.DISTRIBUTION + '/auth.js');
+        shell.cp('./nonce.js', './distributions/' + config.DISTRIBUTION + '/nonce.js');
+        writeConfig(config, zip, ['config.json', 'index.js', 'auth.js', 'nonce.js']);
+        break;
+      case '4':
+        shell.cp('./authz/google.trusted-domain.js', './distributions/' + config.DISTRIBUTION + '/auth.js');
         shell.cp('./nonce.js', './distributions/' + config.DISTRIBUTION + '/nonce.js');
         writeConfig(config, zip, ['config.json', 'index.js', 'auth.js', 'nonce.js']);
         break;
